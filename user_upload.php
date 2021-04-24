@@ -8,7 +8,27 @@ $dbhelper   = new dbHelper();
     Desc: Basic class for all other classes including common functions and variables such as config
 */
 class Base {
+  private static $_file = 'user.csv';
+  private static $_table = 'users';
+  private static $_u = 'root';
+  private static $_p = '';
+  private static $_h = 'localhost';
 
+  protected static function getDefaultFile() {
+    return Base::$_file;
+  }
+  protected static function getDefaultTable() {
+    return Base::$_table;
+  }
+  protected static function getDefaultUser() {
+    return Base::$_u;
+  }
+  protected static function getDefaultPassword() {
+    return Base::$_p;
+  }
+  protected static function getDefaultHost() {
+    return Base::$_h;
+  }
 }
 /*
     Class: fileHelper
