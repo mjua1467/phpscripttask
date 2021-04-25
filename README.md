@@ -4,7 +4,7 @@ This is php script test to read csv file and import it into database.
 
 It has four classes inside in the single file as the followings:
 - Base: Basic class for all other classes including common functions and variables such as config
-- utilHelper: Util class, which has useful functions which help other classes such as email vaildation 
+- utilHelper: Util class, which has useful functions which help other classes such as email validation 
 - fileHelper: related to file read/write actions, including parse file contents and return array by file types
 - dbHelper: Related to db actions, such as connection, create and insert
 
