@@ -11,10 +11,10 @@ It has four classes inside in the single file as the followings:
 # Run
 At the first, please change the following default variables for yours.
 ```
-$_database: default database, which is test. there are no option for the database, so you must change it to run it in your database
-$_u: default user, otherwise, you shoud use -u option, for your database
-$_h: default host, otherwise, you shoud use -h option, for your database
-$_p: default password, otherwise, you shoud use -p option, for your database
+$_database: default database(test) There are no option for the database, so you must change it to run it in your database
+$_u: default user Otherwise, you shoud use -u option, for your database
+$_h: default host Otherwise, you shoud use -h option, for your database
+$_p: default password Otherwise, you shoud use -p option, for your database
 ```
 
 It can be run with / without options.
