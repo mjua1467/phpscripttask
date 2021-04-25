@@ -9,15 +9,15 @@ It has four classes inside in the single file as the followings:
 - dbHelper: Related to db actions, such as connection, create and insert
 
 # Run
-At the first, please change the following variables for yours.
+At the first, please change the following default variables for yours.
 ```
-$_database: default database
-$_u: default user
-$_h: default host
-$_p: default password
+$_database: default database, which is test. there are no option for the database, so you must change it to run it in your database
+$_u: default user, otherwise, you shoud use -u option, for your database
+$_h: default host, otherwise, you shoud use -h option, for your database
+$_p: default password, otherwise, you shoud use -p option, for your database
 ```
 
-It can run it with and without options.
+It can be run with / without options.
 If run it without options, it will use default db info and file to run, which will be
 same as -file [csv file name]
 
