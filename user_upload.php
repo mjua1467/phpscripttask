@@ -403,7 +403,7 @@ class dbHelper extends Base {
         if ($i === 0) {
           $columns .= trim($_data[$i][$j]->name);
         }
-        $row .= "'".utilHelper::modifydata($_data[$i][$j])."'";
+        $row .= "'".mysqli_real_escape_string($_con, utilHelper::modifydata($_data[$i][$j]))."'";
         if ($j < (count($_data[$i])-1)) {
           if ($i === 0) $columns .= ",";
           $row .= ",";
