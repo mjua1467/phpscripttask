@@ -545,6 +545,7 @@ class utilHelper extends Base {
 
   function getHelp() {
     $content = "
+      1. Command line options
       • --file [csv file name] – this is the name of the CSV to be parsed \n
       • --create_table – this will cause the MySQL users table to be built (and no further 
       action will be taken)  \n
@@ -555,6 +556,13 @@ class utilHelper extends Base {
       • -p – MySQL password  \n
       • -h – MySQL host  \n
       • --help – which will output the above list of directives with details. \n  
+      Notice: without any command options, it will run with default values
+
+      2. Mode
+      Current mode is Dev mode, and if change Live mode, only Error log type will display
+
+      3. Validation
+      Email Validation use FILTER_VALIDATE_EMAIL
     ";
     echo $content;
     return true;
