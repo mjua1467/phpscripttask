@@ -8,6 +8,24 @@ It has four classes inside in the single file as the followings:
 - fileHelper: related to file read/write actions, including parse file contents and return array by file types
 - dbHelper: Related to db actions, such as connection, create and insert
 
+# Run
+At the first, please change the following variables for yours.
+```
+$_database: default database
+$_u: default user
+$_h: default host
+$_p: default password
+```
+
+It can run it with and without options.
+If run it without options, it will use default db info and file to run, which will be
+same as -file [csv file name]
+
+```
+php user_upload.php [with/without options]
+```
+For command options, please refer to the next section.
+
 # Command line options
       • --file [csv file name] – this is the name of the CSV to be parsed \n
       • --create_table – this will cause the MySQL users table to be built (and no further 
