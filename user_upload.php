@@ -7,9 +7,38 @@ $params = $utilhelper->getParams($argv);
 if ($utilhelper->isError($params)) {
   //ToDo: set error messge format
   echo "this is error";
+  return;
 }
-$rows = $filehelper->readFile($utilhelper->findArrayObjectbyAttr($params, 'file'), 'csv');
 
+$rows = $filehelper->readFile($utilhelper->findArrayObjectbyAttr($params, 'file'), 'csv');
+if ($utilhelper->isError($rows)) {
+  //ToDo: set error messge format
+  echo "this is error from reading file";
+  return;
+}
+
+$con = $dbhelper->connect($utilhelper->findArrayObjectbyAttr($params, 'u'), $utilhelper->findArrayObjectbyAttr($params, 'p'), $utilhelper->findArrayObjectbyAttr($params, 'h'));
+if ($utilhelper->isError($con)) {
+  //ToDo: set error messge format
+  echo "this is error from db connection";
+  return;
+}
+
+$create = $dbhelper->create('', '', $con);
+if ($utilhelper->isError($create)) {
+  //ToDo: set error messge format
+  echo "this is error from db create";
+  return;
+}
+
+if (!$params) {
+  $inserts = $dbhelper->inserts($rows, '', $con);
+  if ($utilhelper->isError($inserts)) {
+    //ToDo: set error messge format
+    echo "this is error from db insert";
+    return;
+  }
+}
 
 /*
     Class: Base
@@ -21,10 +50,11 @@ class Base {
   protected static $Live = 2;
 
   private static $_file = 'users.csv';
-  private static $_table = 'users';
+  private static $_table = 'users11';
   private static $_u = 'root';
-  private static $_p = '';
+  private static $_p = 'root';
   private static $_h = 'localhost';
+  private static $_columns = "name VARCHAR(30) NOT NULL, surname VARCHAR(30) NOT NULL, email VARCHAR(30) NOT NULL";
 
   protected static function getDefaultFile() {
     return Base::$_file;
@@ -40,6 +70,9 @@ class Base {
   }
   protected static function getDefaultHost() {
     return Base::$_h;
+  }
+  protected static function getDefaultColumns() {
+    return Base::$_columns;
   }
 }
 /*
@@ -130,7 +163,111 @@ class fileHelper extends Base {
     Desc: Related to db actions, such as connection, create and insert
 */
 class dbHelper extends Base {
+  /*
+      firstname VARCHAR(30) NOT NULL,
+      lastname VARCHAR(30) NOT NULL
+  */
+  private function _create($_table, $_columns, $_con) {
+    $sql = "CREATE TABLE IF NOT EXISTS $_table (
+      id INT(6) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+      $_columns
+    )";
+    if ($_con->query($sql) === TRUE) {
+      echo "New Table created successfully";
+    } else {
+      echo "Error: " . $sql . "<br>" . $_con->error;
+      return $this::$Error;
+    }
+  }
 
+  private function _insert($_data, $_columns, $_table, $_con) {
+    $sql = "INSERT INTO $_table ($_columns)
+    VALUES ($_data)";
+    if ($_con->query($sql) === TRUE) {
+      echo "New record created successfully";
+    } else {
+      echo "Error: " . $sql . "<br>" . $_con->error;
+      return $this::$Error;
+    }
+  }
+
+  /**
+  * Extract command or value for command and return the result 
+  * 
+  * @access private 
+  * @param $_param:string 
+  * @return object or string
+  */ 
+  function connect($_u=null, $_p=null, $_h=null) {
+    $u = $_u;
+    $p = $_p;
+    $h = $_h;
+    if (is_null($u)) {
+      $u = $this::getDefaultUser();
+    }
+    if (is_null($p)) {
+      $u = $this::getDefaultPassword();
+    }
+    if (is_null($h)) {
+      $u = $this::getDefaultHost();
+    }
+
+    $con = mysqli_connect($h, $u, $p, 'test');
+    if (!$con || $con->connect_error) {
+      die('Could not connect: ' . mysql_error());
+    } else {
+      return $con;
+    }
+  }
+
+  function create($_table=null, $_columns=null, $_con) {
+    if (is_null($_table) || empty($_table)) {
+      $_table = $this::getDefaultTable();
+    }
+    if (is_null($_columns) || empty($_columns)) {
+      $_columns = $this::getDefaultColumns();
+    }
+    $this->_create($_table, $_columns, $_con);
+  }
+
+  function inserts($_data, $_table=null, $_con) {
+    $columns = '';
+    $rows    = [];
+    $isError = false;
+    if (is_null($_table) || empty($_table)) {
+      $_table = $this::getDefaultTable();
+    }
+    for ($i = 0; $i < count($_data); $i++) {
+      for ($j = 0; $j < count($_data[$i]); $j++) {
+        $row = "";
+        /*
+        if (!utilHelper::vaildate($_data[$i][$j])) {
+          $isError = true;
+          break;
+        }
+        */
+        if ($i === 1) {
+          $columns .= "'".trim($_data[$i][$j]->name)."'";
+        }
+        $row .= "'".trim($_data[$i][$j]->value)."'";
+        if ($j < (count($_data[$i])-1)) {
+          if ($i === 1) $columns .= ",";
+          $row .= ",";
+        }
+      }
+      /*
+      if ($isError) {
+        break;
+      }
+      */
+      $rows[] = $row;
+    }
+    echo $columns;
+    echo "\n\n";
+    print_r($rows);
+
+    //$this->_insert($data, $_table, $_con);
+  }
 }
 /*
     Class: utilHelper
