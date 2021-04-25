@@ -1,11 +1,30 @@
 # phpscripttask
 # About
 This is php script test to read csv file and import it into database.
-It has four classes as followings:
+
+It has four classes inside in the single file as the followings:
 - Base: Basic class for all other classes including common functions and variables such as config
-- utilHelper: Util class, which has useful functions which help other classes such as email vaildation 
+- utilHelper: Util class, which has useful functions which help other classes such as email validation 
 - fileHelper: related to file read/write actions, including parse file contents and return array by file types
 - dbHelper: Related to db actions, such as connection, create and insert
+
+# Run
+At the first, please change the following default variables for yours.
+```
+$_database: default database(test) There are no option for the database, so you must change it to run it in your database
+$_u: default user Otherwise, you shoud use -u option, for your database
+$_h: default host Otherwise, you shoud use -h option, for your database
+$_p: default password Otherwise, you shoud use -p option, for your database
+```
+
+It can be run with / without options.
+If run it without options, it will use default db info and file to run, which will be
+same as -file [csv file name]
+
+```
+php user_upload.php [with/without options]
+```
+For command options, please refer to the next section.
 
 # Command line options
       • --file [csv file name] – this is the name of the CSV to be parsed \n
