@@ -4,43 +4,50 @@ $filehelper = new fileHelper();
 $dbhelper   = new dbHelper();
 
 $utilhelper::initStdout();
+$utilhelper::setMode();
+
+$utilhelper::writeStdout('main', $utilhelper::getInfoCode(), 'Start user_upload.php');
 
 $params = $utilhelper->getParams($argv);
 if ($utilhelper->isError($params)) {
-  //ToDo: set error messge format
-  echo "this is error";
+  $utilhelper::writeStdout('main', $utilhelper::getErrorCode(), 'Command Option is wrong! Please try it again.');
   return;
 }
 
-$rows = $filehelper->readFile($utilhelper->findArrayObjectbyAttr($params, 'file'), 'csv');
-if ($utilhelper->isError($rows)) {
-  //ToDo: set error messge format
-  echo "this is error from reading file";
+$ishelp = $utilhelper->findArrayObjectbyAttr($params, 'help');
+if (!is_null($ishelp) && $ishelp === 'novalue') {
+  $utilhelper->getHelp();
   return;
+}
+
+if ($utilhelper->findArrayObjectbyAttr($params, 'create_table') !== 'novalue') {
+  $rows = $filehelper->readFile($utilhelper->findArrayObjectbyAttr($params, 'file'), 'csv');
+  if ($utilhelper->isError($rows)) {
+    $utilhelper::writeStdout('main', $utilhelper::getErrorCode(), 'File may not exist or file format is wrong! Please try it again.');
+    return;
+  }
 }
 
 $con = $dbhelper->connect($utilhelper->findArrayObjectbyAttr($params, 'u'), $utilhelper->findArrayObjectbyAttr($params, 'p'), $utilhelper->findArrayObjectbyAttr($params, 'h'));
 if ($utilhelper->isError($con)) {
-  //ToDo: set error messge format
-  echo "this is error from db connection";
+  $utilhelper::writeStdout('main', $utilhelper::getErrorCode(), 'Unable to access DB! Please try it again.');
   return;
 }
 
-$create = $dbhelper->create('', '', $con);
+$create = $dbhelper->create('', '', $con, $utilhelper->findArrayObjectbyAttr($params, 'dry_run'));
 if ($utilhelper->isError($create)) {
-  //ToDo: set error messge format
-  echo "this is error from db create";
+  $utilhelper::writeStdout('main', $utilhelper::getErrorCode(), 'Fail to create Table! Please try it again.');
   return;
 }
 
-if (!$params) {
-  $inserts = $dbhelper->inserts($rows, '', $con);
+if (!$params || $utilhelper->findArrayObjectbyAttr($params, 'create_table') !== 'novalue') {
+  $inserts = $dbhelper->inserts($rows, '', $con, $utilhelper->findArrayObjectbyAttr($params, 'dry_run'));
   if ($utilhelper->isError($inserts)) {
-    //ToDo: set error messge format
-    echo "this is error from db insert";
+    $utilhelper::writeStdout('main', $utilhelper::getErrorCode(), 'Fail to insert! Please try it again.');
     return;
   }
 }
+$utilhelper::writeStdout('main', $utilhelper::getInfoCode(), 'End user_upload.php');
 $utilhelper::closeStdout();
 
 /*
@@ -48,22 +55,36 @@ $utilhelper::closeStdout();
     Desc: Basic class for all other classes including common functions and variables such as config
 */
 class Base {
+  protected static $mode;
+
+  protected static $Dev = 1;
+  protected static $Live = 2;
+
   protected static $stdoutclose = false;
   protected static $stdout = '';
 
   protected static $Error = -1;
-  protected static $Success = 3;
   protected static $Info = 4;
-
-  protected static $Dev = 1;
-  protected static $Live = 2;
+  protected static $Success = 3;
 
   private static $_file = 'users.csv';
   private static $_table = 'users';
   private static $_u = 'root';
   private static $_p = 'root';
   private static $_h = 'localhost';
-  private static $_columns = "name VARCHAR(30) NOT NULL, surname VARCHAR(30) NOT NULL, email VARCHAR(30) NOT NULL";
+  private static $_columns = "name VARCHAR(30) NOT NULL, surname VARCHAR(30) NOT NULL, email VARCHAR(30) NOT NULL UNIQUE";
+
+  public static function setMode($_mode=null) {
+    if (is_null($_mode) || empty($_mode)) {
+      Base::$mode = Base::$Dev;
+    } else {
+      Base::$mode = $_mode;
+    }
+  }
+
+  public static function getMode() {
+    return Base::$mode;
+  }
 
   protected static function getDefaultFile() {
     return Base::$_file;
@@ -84,10 +105,18 @@ class Base {
     return Base::$_columns;
   }
 
+  public static function getErrorCode() {
+    return Base::$Error;
+  }
+  public static function getInfoCode() {
+    return Base::$Info;
+  }
+
   public static function initStdout() {
     Base::$stdout = fopen('php://stdout', 'w');
     Base::$stdoutclose = true;
   }
+
   public static function writeStdout($_class, $_type, $_msg) {
     if (Base::$stdoutclose) {
       $date = date('Y-m-d H:i:s');
@@ -101,9 +130,12 @@ class Base {
         default:
           $type = 'Unknown';
       }
-      fwrite(Base::$stdout, "$date [$type][$_class] $_msg" . PHP_EOL);
+      if ($type !== 'Info' || ($type === 'Info' && Base::$mode !== Base::$Live)) {
+        fwrite(Base::$stdout, "$date [$type][$_class] $_msg" . PHP_EOL);
+      }
     }
   }
+
   public static function closeStdout() {
     if (Base::$stdoutclose) {
       fclose(Base::$stdout);
@@ -137,6 +169,7 @@ class fileHelper extends Base {
   * @return row:array
   */ 
   private function _parseCSV($_handle) {
+    $this::writeStdout('fileHelper',  $this::$Info, 'Start parsing CSV file');
     $column = [];
     $rows   = [];
     $cont   = 1;
@@ -159,6 +192,7 @@ class fileHelper extends Base {
       }
       $cont++;
     }
+    $this::writeStdout('fileHelper',  $this::$Info, 'End parsing CSV file');
     return $rows;
   }
 
@@ -186,6 +220,7 @@ class fileHelper extends Base {
           $data = $this->_parseCSV($handle);
         }
         fclose($handle);
+        $this::writeStdout('fileHelper',  $this::$Info, 'End readFile');
         return $data;
       } else {
         throw new Exception('File open failed.');
@@ -193,7 +228,7 @@ class fileHelper extends Base {
     } catch ( Exception $e ) {
       $this::writeStdout('fileHelper', $this::$Error, $e->getMessage());
       return $this::$Error;
-    } 
+    }
   }
 }
 /*
@@ -286,6 +321,7 @@ class dbHelper extends Base {
     $con = mysqli_connect($h, $u, $p, 'test');
     if (!$con || $con->connect_error) {
       die('Could not connect: ' . mysql_error());
+      $this::writeStdout('dbHelper', $this::$Error, 'Could not connect DB');
     } else {
       return $con;
     }
@@ -301,15 +337,35 @@ class dbHelper extends Base {
   * 
   * @return $result:int
   */ 
-  function create($_table=null, $_columns=null, $_con) {
+  function create($_table=null, $_columns=null, $_con, $_dryrun=null) {
     if (is_null($_table) || empty($_table)) {
       $_table = $this::getDefaultTable();
     }
     if (is_null($_columns) || empty($_columns)) {
       $_columns = $this::getDefaultColumns();
     }
-    $result = $this->_drop($_table, $_columns, $_con);
-    $result = $this->_create($_table, $_columns, $_con);
+
+    if ($_dryrun === 'novalue') {
+      $result = $this::$Success;
+    } else {
+      $result = $this->_drop($_table, $_columns, $_con, $_dryrun);
+    }
+    if ($result !== $this::$Error) {
+      $this::writeStdout('dbHelper', $this::$Info, 'Drop Table is completed! Table: '.$_table);
+    } else {
+      $this::writeStdout('dbHelper', $this::$Info, 'Drop Table is Failed! Table: '.$_table);
+    }
+
+    if ($_dryrun === 'novalue') {
+      $result = $this::$Success;
+    } else {
+      $result = $this->_create($_table, $_columns, $_con, $_dryrun);
+    }
+    if ($result !== $this::$Error) {
+      $this::writeStdout('dbHelper', $this::$Info, 'Create Table is completed! Table: '.$_table);
+    } else {
+      $this::writeStdout('dbHelper', $this::$Info, 'Create Table is Failed! Table: '.$_table);
+    }
     return $result;
   }
 
@@ -323,7 +379,7 @@ class dbHelper extends Base {
  * 
  * @return :boolean
  */ 
-  function inserts($_data, $_table=null, $_con) {
+  function inserts($_data, $_table=null, $_con, $_dryrun=null) {
     $columns = '';
     $rows    = [];
     $isError = false;
@@ -336,6 +392,7 @@ class dbHelper extends Base {
       for ($j = 0; $j < count($_data[$i]); $j++) {
 
         if (!utilHelper::vaildatedata($_data[$i][$j])) {
+          $this::writeStdout('dbHelper', $this::$Error, 'Insert is failed! Data may be the wrong. Field: '.trim($_data[$i][$j]->name).' Failed Data: '.$_data[$i][$j]->value);
           $isError = true;
           break;
         }
@@ -348,7 +405,18 @@ class dbHelper extends Base {
           $row .= ",";
         }
       }
-      !$isError ? $this->_insert($row, $columns, $_table, $_con) : '';
+      if (!$isError) {
+        if ($_dryrun === 'novalue') {
+          $suc = $this::$Success;
+        } else {
+          $suc = $this->_insert($row, $columns, $_table, $_con);
+        }
+        if ($suc !== $this::$Error) {
+          $this::writeStdout('dbHelper', $this::$Info, 'Insert is completed! Data: '.$row);
+        } else {
+          $this::writeStdout('dbHelper', $this::$Info, 'Insert is failed! Data may be the wrong. Data: '.$row);
+        }
+      }
     }
   }
 }
@@ -473,6 +541,23 @@ class utilHelper extends Base {
       return ucfirst(strtolower(trim($_data->value)));
     }
     return $_data->value;
+  }
+
+  function getHelp() {
+    $content = "
+      • --file [csv file name] – this is the name of the CSV to be parsed \n
+      • --create_table – this will cause the MySQL users table to be built (and no further 
+      action will be taken)  \n
+      • --dry_run – this will be used with the --file directive in case we want to run the 
+      script but not insert into the DB. All other functions will be executed, but the 
+      database won't be altered  \n
+      • -u – MySQL username  \n
+      • -p – MySQL password  \n
+      • -h – MySQL host  \n
+      • --help – which will output the above list of directives with details. \n  
+    ";
+    echo $content;
+    return true;
   }
 }
 ?>
