@@ -3,6 +3,8 @@ $utilhelper = new utilHelper();
 $filehelper = new fileHelper();
 $dbhelper   = new dbHelper();
 
+$utilhelper::initStdout();
+
 $params = $utilhelper->getParams($argv);
 if ($utilhelper->isError($params)) {
   //ToDo: set error messge format
@@ -39,14 +41,20 @@ if (!$params) {
     return;
   }
 }
+$utilhelper::closeStdout();
 
 /*
     Class: Base
     Desc: Basic class for all other classes including common functions and variables such as config
 */
 class Base {
+  protected static $stdoutclose = false;
+  protected static $stdout = '';
+
   protected static $Error = -1;
   protected static $Success = 3;
+  protected static $Info = 4;
+
   protected static $Dev = 1;
   protected static $Live = 2;
 
@@ -75,7 +83,35 @@ class Base {
   protected static function getDefaultColumns() {
     return Base::$_columns;
   }
+
+  public static function initStdout() {
+    Base::$stdout = fopen('php://stdout', 'w');
+    Base::$stdoutclose = true;
+  }
+  public static function writeStdout($_class, $_type, $_msg) {
+    if (Base::$stdoutclose) {
+      $date = date('Y-m-d H:i:s');
+      switch ($_type) {
+        case Base::$Error :
+          $type = 'Error';
+          break;
+        case Base::$Info :
+          $type = 'Info';
+          break;
+        default:
+          $type = 'Unknown';
+      }
+      fwrite(Base::$stdout, "$date [$type][$_class] $_msg" . PHP_EOL);
+    }
+  }
+  public static function closeStdout() {
+    if (Base::$stdoutclose) {
+      fclose(Base::$stdout);
+      Base::$stdoutclose = false;
+    }
+  }
 }
+
 /*
     Class: fileHelper
     Desc: related to file read/write actions, including parse file contents and return array by file types
@@ -134,6 +170,7 @@ class fileHelper extends Base {
   * @return row:array
   */ 
   function readFile($_file=null) {
+    $this::writeStdout('fileHelper',  $this::$Info, 'Start readFile');
     $file = $_file;
     if (is_null($file)) {
       $file = $this->getDefaultFile();
@@ -154,7 +191,7 @@ class fileHelper extends Base {
         throw new Exception('File open failed.');
       }
     } catch ( Exception $e ) {
-      //ToDo: set error messge format
+      $this::writeStdout('fileHelper', $this::$Error, $e->getMessage());
       return $this::$Error;
     } 
   }
@@ -392,7 +429,11 @@ class utilHelper extends Base {
     $result = null;
     foreach($_arr as $obj) {
       if ($_name == $obj->name) {
-          $result = $obj->value;
+          if (isset($obj->value)) {
+            $result = $obj->value;
+          } else {
+            $result = 'novalue';
+          }
           break;
       }
     }
