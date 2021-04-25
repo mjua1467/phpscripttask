@@ -48,12 +48,20 @@ Email Validation use FILTER_VALIDATE_EMAIL
 
 # Table structure
 There are 4 columns, and id is primary and email is unique.
+
 +---------+-----------------+------+-----+---------+----------------+
+
 | Field   | Type            | Null | Key | Default | Extra          |
+
 +---------+-----------------+------+-----+---------+----------------+
+
 | id      | int(6) unsigned | NO   | PRI | NULL    | auto_increment |
+
 | name    | varchar(30)     | NO   |     | NULL    |                |
+
 | surname | varchar(30)     | NO   |     | NULL    |                |
+
 | email   | varchar(30)     | NO   | UNI | NULL    |                |
+
 +---------+-----------------+------+-----+---------+----------------+
 
