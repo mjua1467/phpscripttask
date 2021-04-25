@@ -1,5 +1,5 @@
 # phpscripttask
-# about
+# About
 This is php script test to read csv file and import it into database
 
 # Command line options
