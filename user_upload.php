@@ -46,11 +46,12 @@ if (!$params) {
 */
 class Base {
   protected static $Error = -1;
+  protected static $Success = 3;
   protected static $Dev = 1;
   protected static $Live = 2;
 
   private static $_file = 'users.csv';
-  private static $_table = 'users11';
+  private static $_table = 'users';
   private static $_u = 'root';
   private static $_p = 'root';
   private static $_h = 'localhost';
@@ -163,30 +164,63 @@ class fileHelper extends Base {
     Desc: Related to db actions, such as connection, create and insert
 */
 class dbHelper extends Base {
-  /*
-      firstname VARCHAR(30) NOT NULL,
-      lastname VARCHAR(30) NOT NULL
-  */
+  /**
+  * create table
+  * 
+  * @access private 
+  * @param $_table:string table name
+  * @param $_columns:string columns for table
+  * @param $_con:object  db connection object 
+  * 
+  * @return :int
+  */ 
   private function _create($_table, $_columns, $_con) {
-    $sql = "CREATE TABLE IF NOT EXISTS $_table (
+    $sql = "CREATE TABLE $_table (
       id INT(6) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
       $_columns
     )";
     if ($_con->query($sql) === TRUE) {
-      echo "New Table created successfully";
+      return $this::$Success;
     } else {
-      echo "Error: " . $sql . "<br>" . $_con->error;
       return $this::$Error;
     }
   }
 
+  /**
+  * drop table
+  * 
+  * @access private 
+  * @param $_table:string table name
+  * @param $_columns:string columns for table
+  * @param $_con:object  db connection object 
+  * 
+  * @return :int
+  */ 
+  private function _drop($_table, $_columns, $_con) {
+    $sql = "Drop TABLE $_table";
+    if ($_con->query($sql) === TRUE) {
+      return $this::$Success;
+    } else {
+      return $this::$Error;
+    }
+  }
+
+  /**
+  * create wrapper for creating table
+  * 
+  * @access public 
+  * @param $_table:string table name
+  * @param $_columns:string columns for table
+  * @param $_con:object  db connection object 
+  * 
+  * @return :boolean
+  */ 
   private function _insert($_data, $_columns, $_table, $_con) {
     $sql = "INSERT INTO $_table ($_columns)
     VALUES ($_data)";
     if ($_con->query($sql) === TRUE) {
-      echo "New record created successfully";
+      return $this::$Success;
     } else {
-      echo "Error: " . $sql . "<br>" . $_con->error;
       return $this::$Error;
     }
   }
@@ -220,6 +254,16 @@ class dbHelper extends Base {
     }
   }
 
+  /**
+  * create wrapper for creating table, which drop table first then create table
+  * 
+  * @access public 
+  * @param $_table:string table name
+  * @param $_columns:string columns for table
+  * @param $_con:object  db connection object 
+  * 
+  * @return $result:int
+  */ 
   function create($_table=null, $_columns=null, $_con) {
     if (is_null($_table) || empty($_table)) {
       $_table = $this::getDefaultTable();
@@ -227,9 +271,21 @@ class dbHelper extends Base {
     if (is_null($_columns) || empty($_columns)) {
       $_columns = $this::getDefaultColumns();
     }
-    $this->_create($_table, $_columns, $_con);
+    $result = $this->_drop($_table, $_columns, $_con);
+    $result = $this->_create($_table, $_columns, $_con);
+    return $result;
   }
 
+ /**
+ * insert wrapper to insert data into db, which includes validation and data modification
+ * 
+ * @access public 
+ * @param $_data:array row data 
+ * @param $_table:string table name
+ * @param $_con:object  db connection object 
+ * 
+ * @return :boolean
+ */ 
   function inserts($_data, $_table=null, $_con) {
     $columns = '';
     $rows    = [];
@@ -238,35 +294,25 @@ class dbHelper extends Base {
       $_table = $this::getDefaultTable();
     }
     for ($i = 0; $i < count($_data); $i++) {
+      $isError = false;
+      $row = "";
       for ($j = 0; $j < count($_data[$i]); $j++) {
-        $row = "";
-        /*
-        if (!utilHelper::vaildate($_data[$i][$j])) {
+
+        if (!utilHelper::vaildatedata($_data[$i][$j])) {
           $isError = true;
           break;
         }
-        */
-        if ($i === 1) {
-          $columns .= "'".trim($_data[$i][$j]->name)."'";
+        if ($i === 0) {
+          $columns .= trim($_data[$i][$j]->name);
         }
-        $row .= "'".trim($_data[$i][$j]->value)."'";
+        $row .= "'".utilHelper::modifydata($_data[$i][$j])."'";
         if ($j < (count($_data[$i])-1)) {
-          if ($i === 1) $columns .= ",";
+          if ($i === 0) $columns .= ",";
           $row .= ",";
         }
       }
-      /*
-      if ($isError) {
-        break;
-      }
-      */
-      $rows[] = $row;
+      !$isError ? $this->_insert($row, $columns, $_table, $_con) : '';
     }
-    echo $columns;
-    echo "\n\n";
-    print_r($rows);
-
-    //$this->_insert($data, $_table, $_con);
   }
 }
 /*
@@ -329,7 +375,7 @@ class utilHelper extends Base {
  * 
  * @access public 
  * @param $_param:any
- * @return boolean
+ * @return :boolean
  */
   function isError($_param=null) {
     return !is_null($_param) && is_int($_param) && $this::$Error === $_param ? true : false;
@@ -351,6 +397,41 @@ class utilHelper extends Base {
       }
     }
     return $result;
+  }
+
+ /**
+ * validation values
+ * currently only have email vaildation
+ * 
+ * @access public 
+ * @param $_data:object name / value
+ * @return :boolean
+ */
+  static function vaildatedata($_data) {
+    if (is_null($_data) || empty($_data) || !is_object($_data)) {
+      return false;
+    }
+    if (trim($_data->name) === 'email') {
+      if (!filter_var($_data->value, FILTER_VALIDATE_EMAIL)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+ /**
+ * modify values
+ * currently only have capitalize if name include name string
+ * 
+ * @access public 
+ * @param $_data:object name / value
+ * @return :boolean
+ */
+  static function modifydata($_data) {
+    if (strpos($_data->name, 'name') !== false) {
+      return ucfirst(strtolower(trim($_data->value)));
+    }
+    return $_data->value;
   }
 }
 ?>
