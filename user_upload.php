@@ -521,11 +521,11 @@ class utilHelper extends Base {
  * @return :boolean
  */
   static function vaildatedata($_data) {
-    if (is_null($_data) || empty($_data) || !is_object($_data)) {
+    if (is_null($_data) || empty($_data) || !is_object($_data) || !isset($_data->name) || !isset($_data->value)) {
       return false;
     }
     if (trim($_data->name) === 'email') {
-      if (!filter_var($_data->value, FILTER_VALIDATE_EMAIL)) {
+      if (!filter_var(trim($_data->value), FILTER_VALIDATE_EMAIL)) {
         return false;
       }
     }
