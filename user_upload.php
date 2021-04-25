@@ -68,6 +68,7 @@ class Base {
   protected static $Success = 3;
 
   private static $_file = 'users.csv';
+  private static $_database = 'test';
   private static $_table = 'users';
   private static $_u = 'root';
   private static $_p = 'root';
@@ -86,6 +87,9 @@ class Base {
     return Base::$mode;
   }
 
+  protected static function getDefaultDatabase() {
+    return Base::$_database;
+  }
   protected static function getDefaultFile() {
     return Base::$_file;
   }
@@ -318,7 +322,7 @@ class dbHelper extends Base {
       $u = $this::getDefaultHost();
     }
 
-    $con = mysqli_connect($h, $u, $p, 'test');
+    $con = mysqli_connect($h, $u, $p, $this->getDefaultDatabase());
     if (!$con || $con->connect_error) {
       die('Could not connect: ' . mysql_error());
       $this::writeStdout('dbHelper', $this::$Error, 'Could not connect DB');
